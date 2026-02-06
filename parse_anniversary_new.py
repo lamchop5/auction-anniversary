@@ -112,14 +112,6 @@ def parse_image(image):
 	imgwidth=img.shape[1]
 	imgheight=img.shape[0]
 
-	red_box_filtered = filter_image(img, AUCTION_RED_BOX,AUCTION_RED_BOX_THRESH)
-	inverted = cv2.bitwise_not(red_box_filtered)
-
-	contours, _ = cv2.findContours(inverted,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-	c = max(contours, key = cv2.contourArea)
-	x,y,w,h = cv2.boundingRect(c)
-	top, bot, left, right = y, y+h, x, x+w
-
 	scanimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	scanimg = cv2.threshold(scanimg, 6, 255, cv2.THRESH_BINARY)[1]
 

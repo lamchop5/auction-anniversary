@@ -6,21 +6,6 @@ import argparse
 import cv2, os, re, io, math, requests
 import discord
 
-AUCTION_RED_BOX = np.array([225, 79, 61])
-AUCTION_RED_BOX_THRESH = np.array([40, 40, 20])
-
-# revenue array of selling prizes for coins
-rev = np.array(
-	[
-		[  360,120,60,36,9,9,6,360],  #index 0, ticket x1 160 prizes
-		[  270,90,45,27,9,9,6,270],  #index 1, ticket x1 120 prizes
-		[  360,180,120,90,18,18,12,360],  #index 2, ticket x2 80 prizes
-		[  540,270,180,135,27,27,18,540],  #index 3, ticket x3 80 prizes
-		[  810,270,135,81,27,27,18,810],  #index 4, ticket x3 120 prizes
-		[  540,360,180,120,27,27,18,540]  #index 5, ticket x3 160 prizes
-	]
-)
-
 points_values = { 
 	"2_120": {"A": 0, "B": 180, "C": 90, "D": 54, "E": 18, "F": 18, "G": 12}, 
 	"2_80":  {"A": 0, "B": 180, "C": 120, "D": 90, "E": 18, "F": 18, "G": 12}, 
@@ -31,11 +16,12 @@ points_values = {
 rev = np.array(
 	[
 		[  0,0,0,0,0,0,0,0],  #index 0, old chest
-		[  540,180,90,54,18,18,12,540],  #index 1 ticket x2 120 prizes ** @ checked smaller tech/s chest
-		[  540,270,180,135,27,27,18,540],  #index 2, ticket x3 80 prizes ** @ checked taxola
-		[  360,180,120,90,18,18,12,360],  #index 3, ticket x2 80 prizes ** @ checked outfits
+		[  540,180,90,54,18,18,12,540],  #index 1 ticket x2 120 prizes ** @ NOT checked smaller tech/s chest
+		[  540,270,180,135,27,27,18,540],  #index 2, ticket x3 80 prizes ** @ NOT checked taxola
+		[  360,180,120,90,18,18,12,360],  #index 3, ticket x2 80 prizes ** @ NOT checked outfits
 		[  540,270,120,72,36,12,12,540],  #index 4, ticket x2 240 prizes ** @ checked rc/ac/reschip chest
-		[  540,360,180,120,27,27,18,540]  #index 5, ticket x3 160 prizes ** @ checked core selector
+		[  540,360,180,120,27,27,18,540],  #index 5, ticket x3 160 prizes ** @ NOT checked 3x core selector
+		[  1080,540,216,90,27,27,18,1080]  #index 6, ticket x3 160 prizes ** @ checked core+xmute core
 	]
 )
 
@@ -266,40 +252,37 @@ def parse_image(image):
 	tessdata_dir_config = (
 	    f'--tessdata-dir "/usr/share/tesseract-ocr/5/tessdata" -c tessedit_char_whitelist="/xX0123456789" -l eng --psm 6 --user-patterns aniv_patterns'
 	)
-	text = pytesseract.image_to_string(image=append_img,config=tessdata_dir_config)
+	prize_text = pytesseract.image_to_string(image=append_img,config=tessdata_dir_config)
 	#print(f"append scanned text :\n{text}")
-	text=re.findall(r"\d{1,2}/\d{1,2}",text)
+	prize_text=re.findall(r"\d{1,2}/\d{1,2}",prize_text)
 	#print(f"re.findall :\n {text}")
-	if len(text)!=8:
+	if len(prize_text)!=8:
 		tessdata_dir_config = (
 			f'--tessdata-dir "/usr/share/tesseract-ocr/5/tessdata" -c tessedit_char_whitelist="/xX0123456789" -l eng --psm 3 --user-patterns aniv_patterns'
 		)
-	text = pytesseract.image_to_string(image=append_img,config=tessdata_dir_config)
-	text = re.findall(r"\d{1,2}/\d{1,2}",text)
+		prize_text = pytesseract.image_to_string(image=append_img,config=tessdata_dir_config)
+		prize_text = re.findall(r"\d{1,2}/\d{1,2}",prize_text)
 
-	if len(text)!=8:
-		return None, debug_files, f"Got less than 8 prizes"
+		if len(prize_text)!=8:
+			return None, debug_files, f"Got less than 8 prizes"
 
-	prizeA=int(text[0].split('/')[0])
-	prizeL=int(text[1].split('/')[0])
-	prizeB=int(text[2].split('/')[0])
-	prizeC=int(text[3].split('/')[0])
-	prizeD=int(text[4].split('/')[0])
-	prizeE=int(text[5].split('/')[0])
-	prizeF=int(text[6].split('/')[0])
-	prizeG=int(text[7].split('/')[0])
+	prizeA=int(prize_text[0].split('/')[0])
+	prizeL=int(prize_text[1].split('/')[0])
+	prizeB=int(prize_text[2].split('/')[0])
+	prizeC=int(prize_text[3].split('/')[0])
+	prizeD=int(prize_text[4].split('/')[0])
+	prizeE=int(prize_text[5].split('/')[0])
+	prizeF=int(prize_text[6].split('/')[0])
+	prizeG=int(prize_text[7].split('/')[0])
 
 
-	text = pytesseract.image_to_string(image=botPrice,config=tessdata_dir_config)
-	print(f"botPrice text : {text}")
+	text = pytesseract.image_to_string(image=topPrice,config=tessdata_dir_config)
 	text=re.findall(r"[xX][1-3]",text)
 	if len(text)==1:
 		xticket =int(text[0][1:])
 	else:
-		text = pytesseract.image_to_string(image=topPrice,config=tessdata_dir_config)
-		#print(f"topPrice text : {text}")
+		text = pytesseract.image_to_string(image=botPrice,config=tessdata_dir_config)
 		text=re.findall(r"[xX][1-3]",text)
-		#print(f"re.findall :\n {text}")
 		if len(text)==1:
 			xticket =int(text[0][1:])
 		else:
@@ -322,7 +305,26 @@ def parse_image(image):
 		rewardsLeft=240
 		ticket=4
 	elif xticket==3 and rewardsLeft==160:
-		ticket=5
+		# check for denominator for diff prizes to differentiate xmute chest vs 3core choice chest
+		# check prize A first
+		if prizeA>0:
+			if int(prize_text[0].split('/')[1])==2: ticket=5
+			else: ticket=6
+			print(f"prizeA denominator tested: {int(prize_text[0].split('/')[1])}")
+		elif prizeB>0:
+			if int(prize_text[2].split('/')[1])==3: ticket=5
+			else: ticket=6
+			print(f"prizeB denominator tested: {int(prize_text[2].split('/')[1])}")
+		elif prizeC>0:
+			if int(prize_text[3].split('/')[1])==6: ticket=5
+			else: ticket=6
+			print(f"prizeC denominator tested: {int(prize_text[3].split('/')[1])}")
+		elif prizeD>0:
+			if int(prize_text[4].split('/')[1])==9: ticket=5
+			else: ticket=6
+			print(f"prizeD denominator tested: {int(prize_text[4].split('/')[1])}")
+		else:
+			ticket = 5 # default to 3x core choice for safer values
 	else:
 		return None, debug_files, f"x{xticket}/{rewardsLeft} chest not coded yet"
 	
@@ -352,7 +354,7 @@ def parse_image(image):
 	if prizeA==0:
 		#retval+=f"sell all (net) : {(sum(totalRev)*10)-costGetAll} gems\n"
 		retval+=f"  keep L (net) : {((sum(totalRev)-rev[ticket][0])*10)-costGetAll} gems"
-		if ticket in [4,5]:
+		if ticket in [4,5,6]:
 			milestone_text += f"{int((costGetAll-((sum(totalRev)-(rev[ticket][0]))*10))/(1+(totalPulls*xticket/300)))} gems/chest ({(1+(totalPulls*xticket/300)):.2f})"
 		print("prizeA==0")
 
@@ -362,7 +364,7 @@ def parse_image(image):
 			f"keep 1 A/L (net) : {((sum(totalRev)-rev[ticket][0])*10)-costGetAll} gems\n"+
 			f"keep 2 A+L (net) : {((sum(totalRev)-(2*rev[ticket][0]))*10)-costGetAll} gems"
 		)
-		if ticket in [4,5]:
+		if ticket in [4,5,6]:
 			gemCost = (costGetAll-((sum(totalRev)-(2*rev[ticket][0]))*10))
 			retval=retval+f"\n\n{int((costGetAll-((sum(totalRev)-(2*rev[ticket][0]))*10))/2)} gems/chest (2)"
 			milestone_text += f"{int((costGetAll-((sum(totalRev)-(2*rev[ticket][0]))*10))/(2+(totalPulls*xticket/300)))} gems/chest ({(2+(totalPulls*xticket/300)):.2f})"
@@ -375,7 +377,7 @@ def parse_image(image):
 			f"keep 2 A+L (net) : {((sum(totalRev)-(2*rev[ticket][0]))*10)-costGetAll} gems\n"+
 			f"keep 3 A+L (net) : {((sum(totalRev)-(3*rev[ticket][0]))*10)-costGetAll} gems"
 		)
-		if ticket in [4,5]:
+		if ticket in [4,5,6]:
 			retval=retval+f"\n\n{math.trunc((costGetAll-((sum(totalRev)-(3*rev[ticket][0]))*10))/3)} gems per chest (3)"
 			milestone_text += f"{int((costGetAll-((sum(totalRev)-(3*rev[ticket][0]))*10))/(3+(totalPulls*xticket/300)))} gems/chest ({(3+(totalPulls*xticket/300)):.2f})"
 		print("prizeA==2")
